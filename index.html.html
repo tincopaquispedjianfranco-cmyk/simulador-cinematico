@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Cinemático - Problema 11.147</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #16a085;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --border: #dcdde1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 30px;
+            display: block;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .layout {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .row {
+            display: table-row;
+        }
+
+        .col-left {
+            display: table-cell;
+            width: 35%;
+            padding-right: 20px;
+            vertical-align: top;
+        }
+
+        .col-right {
+            display: table-cell;
+            width: 65%;
+            vertical-align: top;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 15px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #11806a;
+        }
+
+        .math-box {
+            background-color: #f1f2f6;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--secondary);
+        }
+
+        .table-container {
+            max-height: 450px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:nth-child(even) td {
+            background-color: #fcfcfc;
+        }
+
+        tr:hover td {
+            background-color: #f1f2f6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .badge-normal { background-color: #3498db; }
+        .badge-tangential { background-color: #e67e22; }
+
+        .insights {
+            background-color: #e8f8f5;
+            border: 1px solid #a3e4d7;
+            padding: 15px;
+            border-radius: 6px;
+            color: #117a65;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Simulador Cinemático de Partículas</h1>
+        <p>Análisis Avanzado del Problema 11.147 - Trayectoria, Curvatura y Aceleraciones Intrínsecas</p>
+    </header>
+
+    <div class="layout">
+        <div class="row">
+            <!-- Columna Izquierda: Parámetros y Ecuaciones -->
+            <div class="col-left">
+                <div class="card">
+                    <h2>Parámetros de Entrada</h2>
+                    <div class="form-group">
+                        <label for="vx_input">Velocidad Inicial v<sub>A</sub> (m/s):</label>
+                        <input type="number" id="vx_input" value="2" step="0.5" min="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="g_input">Gravedad g (m/s²):</label>
+                        <input type="number" id="g_input" value="9.81" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="t_max">Tiempo Máximo (s):</label>
+                        <input type="number" id="t_max" value="2" step="0.1" min="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="t_step">Intervalo Δt (s):</label>
+                        <input type="number" id="t_step" value="0.1" step="0.01" min="0.01">
+                    </div>
+                    <button class="btn" onclick="calcularSimulacion()">Actualizar Simulación</button>
+                </div>
+
+                <div class="card">
+                    <h2>Modelos Matemáticos</h2>
+                    <div class="math-box">v(t) = √(v<sub>A</sub>² + g²t²)</div>
+                    <div class="math-box">ρ<sub>B</sub> = V<sub>B</sub>³ / (g · v<sub>A</sub>)</div>
+                    <div class="math-box">a<sub>n</sub> = v² / ρ<sub>B</sub></div>
+                    <div class="math-box">a<sub>t</sub> = √(g² - a<sub>n</sub>²)</div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Tabulación de Resultados -->
+            <div class="col-right">
+                <div class="card">
+                    <h2>Tabulación Dinámica de Datos</h2>
+                    <div class="table-container">
+                        <table id="data_table">
+                            <thead>
+                                <tr>
+                                    <th>t (s)</th>
+                                    <th>v<sub>Bx</sub> (m/s)</th>
+                                    <th>v<sub>By</sub> (m/s)</th>
+                                    <th>v(t) [Rapidez]</th>
+                                    <th>ρ<sub>B</sub> (m) [Radio]</th>
+                                    <th>a<sub>n</sub> (m/s²)</th>
+                                    <th>a<sub>t</sub> (m/s²)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los datos se inyectan dinámicamente con JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Interpretación Física en Vivo</h2>
+                    <div id="insight_box" class="insights">
+                        Mueva los parámetros para observar el comportamiento de las componentes dinámicas del chorro de agua.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calcularSimulacion() {
+        const vA = parseFloat(document.getElementById('vx_input').value);
+        const g = parseFloat(document.getElementById('g_input').value);
+        const tMax = parseFloat(document.getElementById('t_max').value);
+        const dt = parseFloat(document.getElementById('t_step').value);
+
+        const tbody = document.querySelector('#data_table tbody');
+        tbody.innerHTML = '';
+
+        let totalRows = 0;
+        let finalAn = 0;
+        let finalAt = 0;
+
+        for (let t = dt; t <= tMax + 0.001; t += dt) {
+            t = Math.round(t * 100) / 100; // Evitar errores de coma flotante
+            
+            const vBx = vA;
+            const vBy = g * t;
+            const vTotal = Math.sqrt(vBx*vBx + vBy*vBy);
+            
+            // Fórmula del radio de curvatura derivada del problema: rho = v_B^3 / (g * v_A)
+            const rho = Math.pow(vTotal, 3) / (g * vA);
+            
+            const an = (vTotal * vTotal) / rho;
+            const at = Math.sqrt(Math.max(0, (g*g) - (an*an)));
+
+            finalAn = an;
+            finalAt = at;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${t.toFixed(1)}</strong></td>
+                <td>${vBx.toFixed(2)}</td>
+                <td>${vBy.toFixed(3)}</td>
+                <td><span style="color: #16a085; font-weight:bold;">${vTotal.toFixed(4)}</span></td>
+                <td>${rho.toFixed(4)}</td>
+                <td><span class="badge badge-normal">${an.toFixed(4)}</span></td>
+                <td><span class="badge badge-orange" style="background-color: #e67e22;">${at.toFixed(4)}</span></td>
+            `;
+            tbody.appendChild(row);
+            totalRows++;
+        }
+
+        // Generar análisis dinámico en base al último estado
+        const insightBox = document.getElementById('insight_box');
+        if (finalAt > finalAn) {
+            insightBox.innerHTML = `<strong>Análisis cinemático actual (t = ${tMax}s):</strong> A medida que el tiempo transcurre, la trayectoria del fluido se vuelve marcadamente vertical. La aceleración tangencial (<strong>${finalAt.toFixed(2)} m/s²</strong>) domina sobre la aceleración normal (<strong>${finalAn.toFixed(2)} m/s²</strong>), indicando que la gravedad se enfoca casi en su totalidad en incrementar la rapidez del chorro y ya no en curvar su trayectoria. El radio de curvatura crece exponencialmente reflejando una línea cada vez más recta.`;
+        } else {
+            insightBox.innerHTML = `<strong>Análisis cinemático actual (t = ${tMax}s):</strong> En los instantes iniciales, la aceleración normal domina el movimiento, curvando la trayectoria del agua drásticamente hacia el estanque.`;
+        }
+    }
+
+    // Inicializar al cargar la página
+    window.onload = calcularSimulacion;
+</script>
+
+</body>
+</html>
