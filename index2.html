@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Cinemático de Precisión - Problema 11.147</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            --teal-500: #14b8a6;
+            --teal-600: #0d9488;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--slate-50);
+            color: var(--slate-900);
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1450px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--slate-900), var(--slate-800));
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+            border-left: 6px solid var(--teal-500);
+        }
+
+        header h1 { font-size: 20px; }
+        header p { color: var(--slate-200); font-size: 12px; }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 15px;
+        }
+
+        .panel-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-200);
+        }
+
+        .panel-controls h2 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--slate-100);
+        }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+        .form-group input {
+            width: 100%; padding: 6px 8px; border: 1px solid var(--slate-200);
+            border-radius: 5px; font-size: 13px; outline: none; background: var(--slate-50);
+        }
+        .form-group input:focus { border-color: var(--teal-500); background: white; }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            background-color: var(--teal-600);
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn.secondary { background-color: var(--slate-700); }
+        .btn:hover { opacity: 0.9; }
+
+        .time-display {
+            background: var(--slate-900);
+            color: var(--teal-500);
+            font-family: monospace;
+            font-size: 16px;
+            text-align: center;
+            padding: 8px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--slate-200);
+        }
+
+        .chart-card h3 { font-size: 13px; margin-bottom: 8px; color: var(--slate-800); }
+
+        .canvas-container-large { position: relative; width: 100%; height: 380px; }
+        .canvas-container-small { position: relative; width: 100%; height: 200px; }
+        .chart-row-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Simulador Cinemático de Entorno Real</h1>
+        <p>Problema 11.147: Trayectoria con descarga horizontal desde tubería A hacia estanque inclinado</p>
+    </header>
+
+    <div class="workspace">
+        <div class="panel-controls">
+            <h2>Parámetros Mecánicos</h2>
+            <div class="form-group">
+                <label for="vA_input">Velocidad v<sub>A</sub> (m/s):</label>
+                <input type="number" id="vA_input" value="2" step="0.1">
+            </div>
+            <div class="form-group">
+                <label for="g_input">Gravedad g (m/s²):</label>
+                <input type="number" id="g_input" value="9.81" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="t_input">Tiempo Límite (s):</label>
+                <input type="number" id="t_input" value="2.0" step="0.1">
+            </div>
+
+            <div class="time-display" id="cronometro">t = 0.00 s</div>
+
+            <div class="btn-group">
+                <button class="btn" onclick="iniciarAnimacion()">▶ Simular</button>
+                <button class="btn secondary" onclick="pausarAnimacion()">⏸ Pausa</button>
+            </div>
+            <button class="btn secondary" style="width:100%" onclick="reiniciarAnimacion()">🔄 Reiniciar</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="chart-card">
+                <h3>🌊 Simulación Gráfica con Entorno Físico (Tubería A y Terreno de Caída)</h3>
+                <div class="canvas-container-large">
+                    <canvas id="canvas_trayectoria"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-row-bottom">
+                <div class="chart-card">
+                    <h3>⚡ Velocidades Dinámicas</h3>
+                    <div class="canvas-container-small">
+                        <canvas id="canvas_velocidades"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>🌀 Aceleraciones Intrínsecas</h3>
+                    <div class="canvas-container-small">
+                        <canvas id="canvas_aceleraciones"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let graphTrayectoria, graphVelocidades, graphAceleraciones;
+    let animacionId = null;
+    let tActual = 0;
+    const pasoTiempo = 0.03;
+
+    // CONFIGURACIÓN AVANZADA DEL ENTORNO GEOMÉTRICO (Igual al libro)
+    const pluginEntornoLibro = {
+        id: 'pluginEntornoLibro',
+        beforeDraw: (chart) => {
+            const ctx = chart.ctx;
+            const xAxis = chart.scales.x;
+            const yAxis = chart.scales.y;
+
+            if (!xAxis || !yAxis) return;
+
+            const xMinVal = xAxis.min;
+            const xMaxVal = xAxis.max;
+            const yMinVal = yAxis.min;
+            const yMaxVal = yAxis.max;
+
+            ctx.save();
+
+            // 1. DIBUJAR LA COLINA / TERRENO INCLINADO COSTA ABAJO
+            ctx.beginPath();
+            // Punto inicial abajo de la tubería
+            const xInicioTierra = xAxis.getPixelForValue(0);
+            const yInicioTierra = yAxis.getPixelForValue(0);
+            ctx.moveTo(xAxis.getPixelForValue(xMinVal), yInicioTierra + 10);
+            ctx.lineTo(xInicioTierra, yInicioTierra + 10);
+            
+            // Curva o pendiente suave que emula la colina del libro hacia el estanque
+            const xInicioAgua = xAxis.getPixelForValue(xMaxVal * 0.4);
+            const yNivelAgua = yAxis.getPixelForValue(yMaxVal * 0.6);
+            
+            ctx.bezierCurveTo(
+                xAxis.getPixelForValue(xMaxVal * 0.15), yInicioTierra + 10,
+                xAxis.getPixelForValue(xMaxVal * 0.25), yNivelAgua,
+                xInicioAgua, yNivelAgua
+            );
+            
+            // Extender el fondo del estanque
+            ctx.lineTo(xAxis.getPixelForValue(xMaxVal), yNivelAgua);
+            ctx.lineTo(xAxis.getPixelForValue(xMaxVal), yAxis.getPixelForValue(yMaxVal));
+            ctx.lineTo(xAxis.getPixelForValue(xMinVal), yAxis.getPixelForValue(yMaxVal));
+            ctx.closePath();
+            
+            ctx.fillStyle = '#e2e8f0'; // Color del suelo/colina arcillosa
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 2. DIBUJAR EL AGUA DEL ESTANQUE RECEPCIONISTA
+            ctx.beginPath();
+            ctx.moveTo(xInicioAgua, yNivelAgua);
+            ctx.lineTo(xAxis.getPixelForValue(xMaxVal), yNivelAgua);
+            ctx.lineTo(xAxis.getPixelForValue(xMaxVal), yAxis.getPixelForValue(yMaxVal));
+            ctx.lineTo(xInicioAgua, yAxis.getPixelForValue(yMaxVal));
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.25)'; // Azul translúcido para el estanque
+            ctx.fill();
+            
+            // Línea de la superficie del agua con ondas sutiles
+            ctx.beginPath();
+            ctx.moveTo(xInicioAgua, yNivelAgua);
+            ctx.lineTo(xAxis.getPixelForValue(xMaxVal), yNivelAgua);
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 3. DIBUJAR LA TUBERÍA HORIZONTAL "A" (Exactamente como la ilustración)
+            const xZeroPixel = xAxis.getPixelForValue(0);
+            const yZeroPixel = yAxis.getPixelForValue(0);
+
+            ctx.fillStyle = '#94a3b8'; // Gris metálico de la tubería
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2.5;
+
+            const anchoTubería = 90; // Tubería alargada horizontal
+            const altoTubería = 18;
+
+            // Dibujamos el cuerpo cilíndrico de la tubería que viene desde la izquierda
+            ctx.fillRect(xZeroPixel - anchoTubería, yZeroPixel - altoTubería/2, anchoTubería, altoTubería);
+            ctx.strokeRect(xZeroPixel - anchoTubería, yZeroPixel - altoTubería/2, anchoTubería, altoTubería);
+
+            // Anillos de unión metálicos (los soportes o uniones del tubo del libro)
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(xZeroPixel - 75, yZeroPixel - (altoTubería+4)/2, 6, altoTubería + 4);
+            ctx.fillRect(xZeroPixel - 40, yZeroPixel - (altoTubería+4)/2, 6, altoTubería + 4);
+            
+            // Brida o boquilla final en el punto exacto de salida A
+            ctx.fillRect(xZeroPixel - 6, yZeroPixel - (altoTubería+6)/2, 6, altoTubería + 6);
+            ctx.strokeRect(xZeroPixel - 6, yZeroPixel - (altoTubería+6)/2, 6, altoTubería + 6);
+
+            // Marcador de la letra "A" encima de la tubería
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText('A', xZeroPixel - 20, yZeroPixel - 16);
+
+            ctx.restore();
+        }
+    };
+
+    function calcularInstante(t, vA, g) {
+        const x = vA * t;
+        const y = 0.5 * g * t * t;
+        const vy = g * t;
+        const vTotal = Math.sqrt(vA*vA + vy*vy);
+        const rho = Math.pow(vTotal, 3) / (g * vA);
+        const an = (vTotal * vTotal) / rho;
+        const at = Math.sqrt(Math.max(0, (g*g) - (an*an)));
+
+        return { x, y, vA, vy, vTotal, an, at };
+    }
+
+    function inicializarGraficos() {
+        const ctxT = document.getElementById('canvas_trayectoria').getContext('2d');
+        const ctxV = document.getElementById('canvas_velocidades').getContext('2d');
+        const ctxA = document.getElementById('canvas_aceleraciones').getContext('2d');
+
+        const vA = parseFloat(document.getElementById('vA_input').value);
+        const g = parseFloat(document.getElementById('g_input').value);
+        const tMax = parseFloat(document.getElementById('t_input').value);
+        
+        const xMax = vA * tMax * 1.15;
+        const yMax = 0.5 * g * tMax * tMax * 1.15;
+
+        graphTrayectoria = new Chart(ctxT, {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: 'Flujo continuo del chorro de agua',
+                        data: [], borderColor: '#0ea5e9', borderWidth: 4, fill: false, tension: 0.1, pointRadius: 0
+                    },
+                    {
+                        label: 'Partícula en análisis (Punto B)',
+                        data: [], backgroundColor: '#0f172a', borderColor: '#38bdf8', borderWidth: 2, pointRadius: 8, pointHoverRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', min: -0.5, max: xMax, title: { display: true, text: 'Distancia Horizontal X (m)' }, grid: { display: false } },
+                    y: { type: 'linear', min: -1.0, max: yMax, reverse: true, title: { display: true, text: 'Caída Vertical Y (m)' }, grid: { display: false } }
+                },
+                plugins: {
+                    legend: { labels: { boxWidth: 15 } }
+                }
+            },
+            plugins: [pluginEntornoLibro]
+        });
+
+        graphVelocidades = new Chart(ctxV, {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'v_Bx (Horizontal Cte)', data: [], borderColor: '#94a3b8', borderDash: [4,4], pointRadius: 0 },
+                { label: 'v_By (Vertical Caída)', data: [], borderColor: '#ef4444', pointRadius: 0 },
+                { label: 'Rapidez Total v_B', data: [], borderColor: '#14b8a6', borderWidth: 2.5, pointRadius: 0 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Tiempo (s)' } } } }
+        });
+
+        graphAceleraciones = new Chart(ctxA, {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'a_n (Cambio de Dirección)', data: [], borderColor: '#0284c7', pointRadius: 0 },
+                { label: 'a_t (Cambio de Rapidez)', data: [], borderColor: '#f97316', pointRadius: 0 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Tiempo (s)' } } } }
+        });
+    }
+
+    function tickAnimacion() {
+        const vA = parseFloat(document.getElementById('vA_input').value);
+        const g = parseFloat(document.getElementById('g_input').value);
+        const tMax = parseFloat(document.getElementById('t_input').value);
+
+        if (tActual > tMax) {
+            pausarAnimacion();
+            return;
+        }
+
+        document.getElementById('cronometro').innerText = `t = ${tActual.toFixed(2)} s`;
+
+        const calc = calcularInstante(tActual, vA, g);
+
+        // Actualizar la línea del chorro y el punto B con la letra correspondiente
+        graphTrayectoria.data.datasets[0].data.push({ x: calc.x, y: calc.y });
+        graphTrayectoria.data.datasets[1].data = [{ x: calc.x, y: calc.y }];
+        graphTrayectoria.update('none');
+
+        const labelTiempo = tActual.toFixed(2) + "s";
+        
+        graphVelocidades.data.labels.push(labelTiempo);
+        graphVelocidades.data.datasets[0].data.push(calc.vA);
+        graphVelocidades.data.datasets[1].data.push(calc.vy);
+        graphVelocidades.data.datasets[2].data.push(calc.vTotal);
+        graphVelocidades.update('none');
+
+        graphAceleraciones.data.labels.push(labelTiempo);
+        graphAceleraciones.data.datasets[0].data.push(calc.an);
+        graphAceleraciones.data.datasets[1].data.push(calc.at);
+        graphAceleraciones.update('none');
+
+        tActual += pasoTiempo;
+        animacionId = requestAnimationFrame(tickAnimacion);
+    }
+
+    function iniciarAnimacion() {
+        if (animacionId) return;
+        if (tActual === 0) {
+            reiniciarGraficosLimpios();
+        }
+        animacionId = requestAnimationFrame(tickAnimacion);
+    }
+
+    function pausarAnimacion() {
+        if (animacionId) {
+            cancelAnimationFrame(animacionId);
+            animacionId = null;
+        }
+    }
+
+    function reiniciarAnimacion() {
+        pausarAnimacion();
+        tActual = 0;
+        document.getElementById('cronometro').innerText = "t = 0.00 s";
+        reiniciarGraficosLimpios();
+    }
+
+    function reiniciarGraficosLimpios() {
+        if(graphTrayectoria) graphTrayectoria.destroy();
+        if(graphVelocidades) graphVelocidades.destroy();
+        if(graphAceleraciones) graphAceleraciones.destroy();
+        inicializarGraficos();
+    }
+
+    window.onload = inicializarGraficos;
+</script>
+
+</body>
+</html>
