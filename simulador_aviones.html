@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simulador Cinemática Curvilínea</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #020617; color: white; font-family: Arial, sans-serif; }
+    .min-h-screen { min-height: 100vh; }
+    .bg-slate-950 { background-color: #020617; }
+    .bg-slate-900 { background-color: #0f172a; }
+    .bg-slate-800 { background-color: #1e293b; }
+    .text-white { color: #fff; }
+    .p-6 { padding: 1.5rem; }
+    .p-4 { padding: 1rem; }
+    .max-w-7xl { max-width: 80rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .grid { display: grid; }
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0,1fr)); }
+    .gap-6 { gap: 1.5rem; }
+    .rounded-3xl { border-radius: 1.5rem; }
+    .rounded-2xl { border-radius: 1rem; }
+    .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); }
+    .border { border-width: 1px; border-style: solid; }
+    .border-slate-700 { border-color: #334155; }
+    .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+    .text-base { font-size: 1rem; line-height: 1.5rem; }
+    .font-bold { font-weight: 700; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-6 { margin-bottom: 1.5rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .space-y-3 > * + * { margin-top: 0.75rem; }
+    .space-y-2 > * + * { margin-top: 0.5rem; }
+    .space-y-1 > * + * { margin-top: 0.25rem; }
+    .leading-relaxed { line-height: 1.625; }
+    .text-slate-300 { color: #cbd5e1; }
+    .text-emerald-400 { color: #34d399; }
+    .text-cyan-400 { color: #22d3ee; }
+    .text-amber-400 { color: #fbbf24; }
+    .text-sky-400 { color: #38bdf8; }
+    .text-rose-400 { color: #fb7185; }
+    .text-yellow-400 { color: #facc15; }
+    .list-disc { list-style-type: disc; }
+    .ml-5 { margin-left: 1.25rem; }
+    .mr-3 { margin-right: 0.75rem; }
+    .w-full { width: 100%; }
+    .block { display: block; }
+    .transition { transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter; transition-timing-function: cubic-bezier(.4,0,.2,1); transition-duration: 150ms; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .bg-emerald-500 { background-color: #10b981; }
+    .bg-emerald-500:hover { background-color: #34d399; }
+    .bg-rose-500 { background-color: #ef4444; }
+    .bg-rose-500:hover { background-color: #fb7185; }
+    button { cursor: pointer; color: white; border: none; }
+    canvas { display: block; }
+    @media (min-width: 1280px) {
+      .xl-col-span-2 { grid-column: span 2 / span 2; }
+      .xl-grid-cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    }
+    @media (min-width: 768px) {
+      .md-grid-cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    input[type=range] { accent-color: #10b981; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect, useRef } = React;
+
+function SimuladorAviones() {
+  const [vA, setVA] = useState(450);
+  const [aA, setAA] = useState(8);
+  const [vB, setVB] = useState(540);
+  const [aBt, setABt] = useState(-3);
+  const [radio, setRadio] = useState(300);
+  const [angulo, setAngulo] = useState(30);
+  const [distanciaEntrada, setDistanciaEntrada] = useState(400);
+  const [radioA, setRadioA] = useState(300);
+  const [mostrarAnalisis, setMostrarAnalisis] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+
+  const canvasRef = useRef(null);
+
+  const vAms = useMemo(() => vA / 3.6, [vA]);
+  const vBms = useMemo(() => vB / 3.6, [vB]);
+
+  const theta = (-35 * Math.PI) / 180;
+
+  const velA = useMemo(() => ({ x: vAms, y: 0 }), [vAms]);
+
+  const velB = useMemo(() => {
+    const tx = Math.sin(theta);
+    const ty = -Math.cos(theta);
+    return { x: tx * vBms, y: ty * vBms };
+  }, [theta, vBms]);
+
+  const velRel = useMemo(() => ({
+    x: velB.x - velA.x,
+    y: velB.y - velA.y,
+  }), [velA, velB]);
+
+  const magVelRel = useMemo(() => Math.sqrt(velRel.x ** 2 + velRel.y ** 2), [velRel]);
+
+  const acelA = useMemo(() => ({ x: aA, y: 0 }), [aA]);
+
+  const acelB = useMemo(() => {
+    const tx = Math.sin(theta);
+    const ty = -Math.cos(theta);
+    const nx = -Math.cos(theta);
+    const ny = -Math.sin(theta);
+    const an = (vBms ** 2) / radio;
+    return {
+      tangencial: { x: tx * aBt, y: ty * aBt },
+      normal: { x: nx * an, y: ny * an },
+      total: { x: tx * aBt + nx * an, y: ty * aBt + ny * an },
+      an,
+    };
+  }, [theta, vBms, radio, aBt]);
+
+  const acelRel = useMemo(() => ({
+    x: acelB.total.x - acelA.x,
+    y: acelB.total.y - acelA.y,
+  }), [acelB, acelA]);
+
+  const magAcelRel = useMemo(() => Math.sqrt(acelRel.x ** 2 + acelRel.y ** 2), [acelRel]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const interval = setInterval(() => {
+      setTime((t) => t + 0.03);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [playing]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
+
+    const scale = 0.55;
+    const yRectaA = h / 2 - 120;
+    const sA = vAms * time + 0.5 * aA * time ** 2;
+
+    let xA, yA, thetaA = -Math.PI / 2;
+
+    const tiempoEntrada = (-vAms + Math.sqrt(vAms ** 2 + 2 * aA * distanciaEntrada)) / aA;
+
+    const puntoEntradaX = 100 + distanciaEntrada * scale;
+    const puntoEntradaY = yRectaA;
+    const centerAX = puntoEntradaX;
+    const centerAY = puntoEntradaY + radioA * scale;
+
+    if (sA < distanciaEntrada || tiempoEntrada <= 0 || !isFinite(tiempoEntrada)) {
+      xA = 100 + sA * scale;
+      yA = yRectaA;
+    } else {
+      const tiempoCurva = time - tiempoEntrada;
+      const velocidadEntrada = vAms + aA * tiempoEntrada;
+      const omegaA = velocidadEntrada / radioA;
+      const thetaA0 = -Math.PI / 2;
+      const tiempoMediaCurvaA = Math.PI / omegaA;
+
+      if (tiempoCurva <= tiempoMediaCurvaA) {
+        thetaA = thetaA0 + omegaA * tiempoCurva;
+        xA = centerAX + radioA * Math.cos(thetaA) * scale;
+        yA = centerAY + radioA * Math.sin(thetaA) * scale;
+      } else {
+        thetaA = thetaA0 + Math.PI;
+        const xSalidaA = centerAX + radioA * Math.cos(thetaA) * scale;
+        const ySalidaA = centerAY + radioA * Math.sin(thetaA) * scale;
+        const tiempoExtraA = tiempoCurva - tiempoMediaCurvaA;
+        xA = xSalidaA - velocidadEntrada * tiempoExtraA * scale;
+        yA = ySalidaA;
+      }
+    }
+
+    const omega = vBms / radio;
+    const centerX = centerAX;
+    const centerY = centerAY;
+    const tiempoMediaCurvaB = Math.PI / omega;
+    let thetaMove, xB, yB;
+    const thetaSalidaCompartida = Math.PI / 2;
+
+    thetaMove = theta + omega * time;
+
+    if (thetaMove < thetaSalidaCompartida) {
+      xB = centerX + radio * Math.cos(thetaMove) * scale;
+      yB = centerY + radio * Math.sin(thetaMove) * scale;
+    } else {
+      thetaMove = thetaSalidaCompartida;
+      const xSalida = centerX + radio * Math.cos(thetaMove) * scale;
+      const ySalida = centerY + radio * Math.sin(thetaMove) * scale;
+      const tiempoHastaSalida = (thetaSalidaCompartida - theta) / omega;
+      const tiempoExtra = time - tiempoHastaSalida;
+      xB = xSalida - vBms * tiempoExtra * scale;
+      yB = ySalida;
+    }
+
+    // Glow del pilar
+    const glow = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, radio * scale * 0.8);
+    glow.addColorStop(0, 'rgba(251,191,36,0.25)');
+    glow.addColorStop(1, 'rgba(251,191,36,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(centerX, centerY, radio * scale * 0.8, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath(); ctx.arc(centerX, centerY, 28, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#475569';
+    ctx.beginPath(); ctx.arc(centerX, centerY, 16, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('PILAR', centerX - 24, centerY - 40);
+
+    ctx.strokeStyle = 'rgba(239,68,68,0.35)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.arc(centerX, centerY, 55, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = 'rgba(148,163,184,0.08)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < w; gx += 50) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke(); }
+    for (let gy = 0; gy < h; gy += 50) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke(); }
+
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(centerX, centerY, radio * scale, 0, Math.PI * 2); ctx.stroke();
+
+    ctx.strokeStyle = '#64748b';
+    ctx.beginPath(); ctx.moveTo(40, yRectaA); ctx.lineTo(puntoEntradaX, yRectaA); ctx.stroke();
+
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerAX, centerAY, radio * scale, -Math.PI / 2, Math.PI * 1.2);
+    ctx.stroke();
+
+    // Trayectoria recorrida por A
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    if (sA < distanciaEntrada || tiempoEntrada <= 0 || !isFinite(tiempoEntrada)) {
+      ctx.moveTo(100, yRectaA); ctx.lineTo(xA, yA);
+    } else {
+      ctx.moveTo(100, yRectaA); ctx.lineTo(puntoEntradaX, yRectaA);
+      ctx.arc(centerAX, centerAY, radioA * scale, -Math.PI / 2, thetaA, false);
+      if (thetaA >= Math.PI / 2) { ctx.lineTo(xA, yA); }
+    }
+    ctx.stroke();
+
+    // Trayectoria recorrida por B
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const xInicioB = centerX + radio * Math.cos(theta) * scale;
+    const yInicioB = centerY + radio * Math.sin(theta) * scale;
+    ctx.moveTo(xInicioB, yInicioB);
+    if (thetaMove < Math.PI / 2) {
+      ctx.arc(centerX, centerY, radio * scale, theta, thetaMove, false);
+    } else {
+      ctx.arc(centerX, centerY, radio * scale, theta, Math.PI / 2, false);
+      ctx.lineTo(xB, yB);
+    }
+    ctx.stroke();
+
+    ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 15;
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath(); ctx.arc(xA, yA, 10, 0, Math.PI * 2); ctx.fill();
+
+    ctx.shadowColor = '#f97316'; ctx.shadowBlur = 15;
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath(); ctx.arc(xB, yB, 10, 0, Math.PI * 2); ctx.fill();
+
+    // Vector velocidad A (primera pasada, sobreescrita abajo)
+    ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(xA, yA); ctx.lineTo(xA + velA.x * 0.5, yA); ctx.stroke();
+
+    // Vector velocidad B (primera pasada)
+    ctx.strokeStyle = '#f97316';
+    ctx.beginPath(); ctx.moveTo(xB, yB); ctx.lineTo(xB + velB.x * 0.5, yB - velB.y * 0.5); ctx.stroke();
+
+    // Vector aceleración normal
+    ctx.strokeStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.moveTo(xB, yB);
+    ctx.lineTo(xB - Math.cos(thetaMove) * 50, yB + Math.sin(thetaMove) * 50);
+    ctx.stroke();
+
+    ctx.fillStyle = 'white'; ctx.font = '14px Arial';
+    ctx.fillText('A', xA + 12, yA - 12);
+    ctx.fillText('B', xB + 12, yB - 12);
+    ctx.shadowBlur = 0;
+
+    // --- VECTORES CINEMÁTICOS ---
+    const vAx = 55, vAy = 0;
+    ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(xA, yA); ctx.lineTo(xA + vAx, yA + vAy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xA + vAx, yA + vAy); ctx.lineTo(xA + vAx - 10, yA + vAy - 5); ctx.lineTo(xA + vAx - 10, yA + vAy + 5); ctx.closePath();
+    ctx.fillStyle = '#22c55e'; ctx.fill();
+    ctx.fillStyle = '#22c55e'; ctx.font = 'bold 14px Arial'; ctx.fillText('vₐ', xA + vAx + 8, yA + 5);
+
+    const nAx = centerAX - xA, nAy = centerAY - yA;
+    const magNA = Math.hypot(nAx, nAy) || 1;
+    const normAx = (nAx / magNA) * 45, normAy = (nAy / magNA) * 45;
+    ctx.strokeStyle = '#38bdf8';
+    ctx.beginPath(); ctx.moveTo(xA, yA); ctx.lineTo(xA + normAx, yA + normAy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xA + normAx, yA + normAy); ctx.lineTo(xA + normAx - 8, yA + normAy - 4); ctx.lineTo(xA + normAx - 8, yA + normAy + 4); ctx.closePath();
+    ctx.fillStyle = '#38bdf8'; ctx.fill();
+    ctx.fillStyle = '#38bdf8'; ctx.fillText('aₙA', xA + normAx + 8, yA + normAy);
+
+    const tangBx = -Math.sin(thetaMove) * 55, tangBy = Math.cos(thetaMove) * 55;
+    ctx.strokeStyle = '#f97316';
+    ctx.beginPath(); ctx.moveTo(xB, yB); ctx.lineTo(xB + tangBx, yB + tangBy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xB + tangBx, yB + tangBy); ctx.lineTo(xB + tangBx - 8, yB + tangBy - 5); ctx.lineTo(xB + tangBx - 8, yB + tangBy + 5); ctx.closePath();
+    ctx.fillStyle = '#f97316'; ctx.fill();
+    ctx.fillStyle = '#f97316'; ctx.fillText('vᵦ', xB + tangBx + 8, yB + tangBy);
+
+    const nBx = centerX - xB, nBy = centerY - yB;
+    const magNB = Math.hypot(nBx, nBy) || 1;
+    const normBx = (nBx / magNB) * 45, normBy = (nBy / magNB) * 45;
+    ctx.strokeStyle = '#a855f7';
+    ctx.beginPath(); ctx.moveTo(xB, yB); ctx.lineTo(xB + normBx, yB + normBy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xB + normBx, yB + normBy); ctx.lineTo(xB + normBx - 8, yB + normBy - 5); ctx.lineTo(xB + normBx - 8, yB + normBy + 5); ctx.closePath();
+    ctx.fillStyle = '#a855f7'; ctx.fill();
+    ctx.fillStyle = '#a855f7'; ctx.fillText('aₙB', xB + normBx + 8, yB + normBy);
+
+    const atBx = (-Math.sin(thetaMove) * 35), atBy = (Math.cos(thetaMove) * 35);
+    ctx.strokeStyle = '#ef4444';
+    ctx.beginPath(); ctx.moveTo(xB, yB); ctx.lineTo(xB - atBx, yB - atBy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xB - atBx, yB - atBy); ctx.lineTo(xB - atBx - 6, yB - atBy - 4); ctx.lineTo(xB - atBx - 6, yB - atBy + 4); ctx.closePath();
+    ctx.fillStyle = '#ef4444'; ctx.fill();
+    ctx.fillStyle = '#ef4444'; ctx.fillText('aₜB', xB - atBx + 8, yB - atBy);
+
+    ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 16px Arial';
+    ctx.fillText(`Tiempo: ${time.toFixed(2)} s`, 30, 30);
+    ctx.fillText(`ωB: ${(vBms / radio).toFixed(2)} rad/s`, 30, 55);
+    ctx.fillText(`aₙ(B): ${(vBms ** 2 / radio).toFixed(2)} m/s²`, 30, 80);
+
+  }, [time, vAms, aA, vBms, radio, theta, velA, velB]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white p-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 xl-grid-cols-3 gap-6" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))'}}>
+
+        <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-700">
+          <h1 className="text-3xl font-bold mb-4">Simulador Cinemática Curvilínea</h1>
+          <p className="text-slate-300 mb-6 leading-relaxed">
+            Desarrollo orientado al método tangencial-normal.
+            El avión A realiza movimiento rectilíneo con aceleración tangencial.
+            El avión B sigue una trayectoria circular con componentes tangencial y normal.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1">Velocidad A (km/h)</label>
+              <input type="range" min="100" max="900" value={vA} onChange={(e) => setVA(Number(e.target.value))} className="w-full" />
+              <div>{vA} km/h</div>
+            </div>
+            <div>
+              <label className="block mb-1">Aceleración A (m/s²)</label>
+              <input type="range" min="-20" max="20" value={aA} onChange={(e) => setAA(Number(e.target.value))} className="w-full" />
+              <div>{aA} m/s²</div>
+            </div>
+            <div>
+              <label className="block mb-1">Velocidad B (km/h)</label>
+              <input type="range" min="100" max="900" value={vB} onChange={(e) => setVB(Number(e.target.value))} className="w-full" />
+              <div>{vB} km/h</div>
+            </div>
+            <div>
+              <label className="block mb-1">aₜ de B (m/s²)</label>
+              <input type="range" min="-20" max="20" value={aBt} onChange={(e) => setABt(Number(e.target.value))} className="w-full" />
+              <div>{aBt} m/s²</div>
+            </div>
+            <div>
+              <label className="block mb-1">Radio de curvatura (m)</label>
+              <input type="range" min="50" max="800" value={radio} onChange={(e) => setRadio(Number(e.target.value))} className="w-full" />
+              <div>{radio} m</div>
+            </div>
+            <div>
+              <label className="block mb-1">Radio de giro de A (m)</label>
+              <input type="range" min="50" max="800" value={radioA} onChange={(e) => setRadioA(Number(e.target.value))} className="w-full" />
+              <div>{radioA} m</div>
+            </div>
+            <div>
+              <label className="block mb-1">Distancia de entrada de A (m)</label>
+              <input type="range" min="100" max="1000" value={distanciaEntrada} onChange={(e) => setDistanciaEntrada(Number(e.target.value))} className="w-full" />
+              <div>{distanciaEntrada} m</div>
+            </div>
+            <div>
+              <label className="block mb-1">Ángulo geométrico (°)</label>
+              <input type="range" min="0" max="180" value={angulo} onChange={(e) => setAngulo(Number(e.target.value))} className="w-full" />
+              <div>{angulo}°</div>
+            </div>
+            <div>
+              <button onClick={() => setPlaying(!playing)} className="bg-emerald-500 transition px-4 py-2 rounded-2xl mr-3 font-bold">
+                {playing ? 'Pausar' : 'Iniciar'}
+              </button>
+              <button onClick={() => { setTime(0); setPlaying(false); }} className="bg-rose-500 transition px-4 py-2 rounded-2xl font-bold">
+                Reiniciar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{gridColumn:'span 2 / span 2'}} className="space-y-6">
+
+          <div className="bg-slate-900 rounded-3xl p-4 border border-slate-700 shadow-2xl">
+            <canvas ref={canvasRef} width={1000} height={600} className="w-full rounded-2xl bg-slate-950" />
+          </div>
+
+          <div className="grid md-grid-cols-2 gap-6" style={{gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-700">
+              <h2 className="text-2xl font-bold mb-4">Velocidad Relativa</h2>
+              <div className="space-y-2 text-lg">
+                <div>V⃗BA,x = {velRel.x.toFixed(2)} m/s</div>
+                <div>V⃗BA,y = {velRel.y.toFixed(2)} m/s</div>
+                <div className="text-emerald-400 font-bold text-2xl">|V⃗BA| = {magVelRel.toFixed(2)} m/s</div>
+              </div>
+            </div>
+            <div className="bg-slate-900 rounded-3xl p-6 border border-slate-700">
+              <h2 className="text-2xl font-bold mb-4">Aceleración Relativa</h2>
+              <div className="space-y-2 text-lg">
+                <div>a⃗BA,x = {acelRel.x.toFixed(2)} m/s²</div>
+                <div>a⃗BA,y = {acelRel.y.toFixed(2)} m/s²</div>
+                <div className="text-cyan-400 font-bold text-2xl">|a⃗BA| = {magAcelRel.toFixed(2)} m/s²</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-700">
+            <h2 className="text-2xl font-bold mb-4">Interpretación Física</h2>
+            <div className="space-y-3 text-slate-300 leading-relaxed">
+              <p>El avión A realiza movimiento rectilíneo acelerado. Su dirección permanece constante sobre el eje x.</p>
+              <p>El avión B posee una aceleración compuesta: una componente tangencial responsable del cambio de rapidez y una componente normal responsable del cambio de dirección.</p>
+              <p>Aunque el problema se vea sencillo en dibujo, realmente es un caso completo de movimiento relativo entre partículas en trayectorias distintas.</p>
+              <p>La parte delicada es que el vector tangencial cambia continuamente de orientación conforme el avión gira. Ahí es donde normalmente muchos ejercicios se rompen algebraicamente.</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-700">
+            <h2 className="text-2xl font-bold mb-4">Evaluación Estratégica de la Carrera</h2>
+            <div className="space-y-4 text-lg">
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <div className="font-bold text-emerald-400 mb-2">Condiciones Favorables para A</div>
+                <ul className="space-y-1 text-slate-300 list-disc ml-5">
+                  <li>Mayor velocidad inicial.</li>
+                  <li>Radio de giro amplio.</li>
+                  <li>Entrada tardía a la curva.</li>
+                  <li>Aceleración tangencial positiva.</li>
+                </ul>
+              </div>
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <div className="font-bold text-rose-400 mb-2">Condiciones Desfavorables para A</div>
+                <ul className="space-y-1 text-slate-300 list-disc ml-5">
+                  <li>Radio pequeño de curvatura.</li>
+                  <li>Alta aceleración normal.</li>
+                  <li>Ingreso temprano a la curva.</li>
+                  <li>Diferencia angular grande respecto a B.</li>
+                </ul>
+              </div>
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <div className="font-bold text-yellow-400 mb-2">Valores de Referencia Recomendados</div>
+                <div className="space-y-2 text-slate-300 text-base">
+                  <div>Caso equilibrado: VA = 450 km/h, VB = 540 km/h, r = 300 m</div>
+                  <div>Ventaja para A: usar radioA &gt; 350 m y aA positiva.</div>
+                  <div>Ventaja para B: radio pequeño y gran diferencia angular.</div>
+                  <div>Caso extremo: velocidades altas con radios pequeños. Produce aceleraciones normales muy grandes.</div>
+                </div>
+              </div>
+              <div className="bg-slate-800 rounded-2xl p-4">
+                <div className="font-bold text-cyan-400 mb-2">Diagnóstico Actual</div>
+                <div className="space-y-2 text-slate-300">
+                  <div>aₙ(B) = {(vBms ** 2 / radio).toFixed(2)} m/s²</div>
+                  <div>aₙ(A) ≈ {((vAms ** 2) / radioA).toFixed(2)} m/s²</div>
+                  <div>{((vAms ** 2) / radioA) < ((vBms ** 2) / radio) ? 'A posee mejor estabilidad en curva que B.' : 'B mantiene mejor control dinámico en curva.'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-3xl p-6 border border-slate-700">
+            <h2 className="text-2xl font-bold mb-4">Desarrollo Tangencial-Normal</h2>
+            <div className="grid md-grid-cols-2 gap-6 text-lg" style={{gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+              <div>
+                <div className="font-bold text-amber-400 mb-2">Avión A</div>
+                <div>Movimiento rectilíneo.</div>
+                <div>v⃗A = ({velA.x.toFixed(2)}, {velA.y.toFixed(2)}) m/s</div>
+                <div>a⃗A = ({acelA.x.toFixed(2)}, {acelA.y.toFixed(2)}) m/s²</div>
+              </div>
+              <div>
+                <div className="font-bold text-sky-400 mb-2">Avión B</div>
+                <div className="mb-2 text-slate-300">Cinemática curvilínea usando componentes tangencial-normal.</div>
+                <div>aₙ = v²/ρ</div>
+                <div>aₙ = ({vBms.toFixed(2)}²)/{radio}</div>
+                <div>aₙ = {acelB.an.toFixed(2)} m/s²</div>
+                <div>θ = {angulo.toFixed(1)}°</div>
+                <div>ω = {(vBms / radio).toFixed(3)} rad/s</div>
+                <div>aₜ = {aBt.toFixed(2)} m/s²</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<SimuladorAviones />);
+</script>
+</body>
+</html>
